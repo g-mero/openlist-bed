@@ -1,0 +1,7 @@
+.idea
+data
+tmp
+
+third_party/
+test_output
+vips-dev.zip

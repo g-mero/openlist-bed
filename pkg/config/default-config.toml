@@ -1,0 +1,13 @@
+# the key for api access (upload)
+api_key = 'API_KEY'
+# for generating share links
+host = 'https://your-bed-site.com'
+
+# auto check HEADER 'Accept' for webp support, and convert images to webp on the flys
+# if you are using cdn, make sure your cdn support header cache key
+auto_webp = false
+
+[openlist]
+host = 'https://pan.gmero.com'
+token = 'YOUR_OPENLIST_TOKEN'
+path= '/onedrive/share/pics'
