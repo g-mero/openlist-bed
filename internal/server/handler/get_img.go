@@ -4,15 +4,15 @@ import (
 	"openlist-bed/internal/storages"
 	"openlist-bed/pkg/utils"
 	"openlist-bed/pkg/vimage"
-
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/spf13/viper"
 )
 
 func GetImage(c fiber.Ctx) error {
-
 	webPath := c.Params("+")
+	webp := c.Query("webp") == "true"
 
 	storage := storages.NewOpenlistStorage()
 
@@ -27,9 +27,11 @@ func GetImage(c fiber.Ctx) error {
 		return err
 	}
 
-	supportWebp := strings.Contains(c.Get("Accept"), "webp")
+	if viper.GetBool("auto_webp") {
+		webp = strings.Contains(c.Get("Accept"), "webp")
+	}
 
-	buf, format, err := img.SmartCompress(supportWebp)
+	buf, format, err := img.SmartCompress(webp)
 	if err != nil {
 		return err
 	}

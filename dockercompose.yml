@@ -1,20 +1,20 @@
-version: '3'
+version: "3"
 networks:
   1panel-network:
     external: true
 services:
   gotutu:
     container_name: openlist-bed
-    image: gmeroo/openlist-bed:0.1.0
+    image: gmeroo/openlist-bed:latest
     ports:
       - "3205:6001"
     networks:
       - 1panel-network
     restart: on-failure
     environment:
-      - API_KEY=gmero22
-      - THUMB_STORAGE=local_cache
-      - ORIGIN_STORAGE=alist
-      - ALIST_HOST=http://alist:5244
-      - ALIST_TOKEN=alist-3a6b3ac5-c4f1-4de9-b7ce-9c9e55ba9c73uWH8Rhxrj4JkUdGVYn1GQRqDGYMeIvmeFSXWPhOdG5WEgiLakri5RutXwF5d8W7e
-      - ALIST_PATH=/onedrive/pics
+      - API_KEY=apiKey
+      - HOST=http://localhost:3205
+      - OPENLIST_HOST=http://openlist:3200
+      - OPENLIST_TOKEN=openlistToken
+      - OPENLIST_PATH=onedrive/img
+      - AUTO_WEBP=false

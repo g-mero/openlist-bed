@@ -69,8 +69,8 @@ func Run() {
 		JSONDecoder: sonic.Unmarshal,
 		JSONEncoder: sonic.Marshal,
 	})
-
 	app.Use(middleware.Cors())
+	app.Use(middleware.Cache())
 	registerRoutes(app)
 
 	go func() {

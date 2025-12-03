@@ -1,21 +1,34 @@
 FROM golang:1.25.3-bookworm AS builder
 
-# RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
-# RUN sed -i 's/security.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
-RUN apt update && apt install --no-install-recommends libvips-dev -y && mkdir /build
+# RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+# RUN sed -i 's/security.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+
+# Add Debian sid repository for latest libvips
+RUN echo "deb http://ftp.hk.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends -t sid libvips-dev \
+    && rm /etc/apt/sources.list.d/sid.list \
+    && apt-get update \
+    && mkdir /build
 COPY go.mod /build
 RUN cd /build && go mod tidy
 
 COPY . /build
 RUN cd /build \
-    && go build -ldflags="-s -w" -o main .
+    && CGO_ENABLED=1 go build -ldflags="-s -w" -o main cmd/server/main.go
 
 FROM debian:bookworm-slim
 
-# RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
-# RUN sed -i 's/security.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list
-RUN apt update && apt install --no-install-recommends libvips ca-certificates libjemalloc2 libtcmalloc-minimal4 -y && \
-    rm -rf /var/lib/apt/lists/* &&  rm -rf /var/cache/apt/archives/*
+# RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+# RUN sed -i 's/security.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
+
+# Add Debian sid repository for latest libvips runtime
+RUN echo "deb http://ftp.hk.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends -t sid libvips-dev \
+    && apt-get install -y --no-install-recommends ca-certificates libjemalloc2 libtcmalloc-minimal4 \
+    && rm /etc/apt/sources.list.d/sid.list \
+    && rm -rf /var/lib/apt/lists/* && rm -rf /var/cache/apt/archives/*
 
 COPY --from=builder /build/main /opt/main
 

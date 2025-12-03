@@ -189,7 +189,7 @@ func (img *Image) SmartCompress(allowWebp bool) ([]byte, ImageFormat, error) {
 	}
 
 	// compress gif is not effective, return original data
-	if img.originalFormat == FormatGIF {
+	if img.originalFormat == FormatGIF && !allowWebp {
 		return img.originalData, FormatGIF, nil
 	}
 
