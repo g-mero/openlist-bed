@@ -109,5 +109,3 @@ jobs:
           generate_release_notes: ${{ steps.check_notes.outputs.exists != 'true' }}
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
