@@ -29,6 +29,8 @@ jobs:
           cache: true
 
       - name: Run vimage tests
+        env:
+          CGO_ENABLED: 1
         run: |
           cd pkg/vimage
           go test -v
