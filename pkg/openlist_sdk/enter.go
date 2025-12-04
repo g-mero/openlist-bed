@@ -2,15 +2,16 @@ package openlist_sdk
 
 import (
 	"errors"
+	"openlist-bed/pkg/logger"
 	"openlist-bed/pkg/utils"
 	"openlist-bed/pkg/vimage"
 	path2 "path"
 
 	"github.com/imroc/req/v3"
+	"go.uber.org/zap"
 )
 
 type OpenlistApi struct {
-	Token  string
 	Host   string
 	client *req.Client
 }
@@ -20,10 +21,11 @@ type OpenlistInfo struct {
 }
 
 func NewOpenlistApi(token, host string) *OpenlistApi {
+	client := req.C().SetCommonHeader("Authorization", token)
+
 	return &OpenlistApi{
-		Token:  token,
-		Host:   host,
-		client: req.C(),
+		host,
+		client,
 	}
 }
 
@@ -36,7 +38,6 @@ func (that OpenlistApi) GetImgInfo(remotePath string) (OpenlistInfo, error) {
 	var body utils.H
 	_, err = that.client.R().
 		SetBody(utils.H{"path": remotePath}).
-		SetHeader("Authorization", that.Token).
 		SetSuccessResult(&body).
 		Post(apiUrl)
 
@@ -56,8 +57,7 @@ func (that OpenlistApi) GetImgInfo(remotePath string) (OpenlistInfo, error) {
 
 func (that OpenlistApi) UploadImg(remoteDir string, img *vimage.Image) error {
 	header := map[string]string{
-		"Authorization": that.Token,
-		"File-Path":     path2.Clean(remoteDir + "/" + img.FullName()),
+		"File-Path": path2.Clean(remoteDir + "/" + img.FullName()),
 	}
 
 	apiUrl := that.Host + "/api/fs/form"
@@ -72,6 +72,30 @@ func (that OpenlistApi) UploadImg(remoteDir string, img *vimage.Image) error {
 	if body["code"].(float64) != 200 {
 		return errors.New("上传失败: " + body["message"].(string))
 	}
+
+	// refresh dir
+	_ = that.refreshDir(remoteDir)
+
+	return nil
+}
+
+func (that OpenlistApi) refreshDir(remoteDir string) error {
+	apiUrl := that.Host + "/api/fs/list"
+
+	resp, err := that.client.R().SetBodyJsonMarshal(utils.H{
+		"path":     remoteDir,
+		"password": "",
+		"refresh":  true,
+		"page":     1,
+		"per_page": 0,
+	}).Post(apiUrl)
+
+	if err != nil {
+		logger.Debug("[openlist] refresh dir error", zap.Error(err))
+		return err
+	}
+
+	logger.Debug("[openlist] refresh dir response", zap.String("resp", resp.String()))
 
 	return nil
 }

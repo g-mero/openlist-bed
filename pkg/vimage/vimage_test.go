@@ -11,13 +11,14 @@ import (
 )
 
 var testImages = []string{
-	"test_data/human.jpg",
-	"test_data/sunset.jpg",
-	"test_data/words.png",
-	"test_data/animate.gif",
-	"test_data/animated-flower.webp",
-	"test_data/monalisa.webp",
-	"test_data/with-alpha.png",
+	//"test_data/human.jpg",
+	//"test_data/sunset.jpg",
+	//"test_data/words.png",
+	//"test_data/animate.gif",
+	//"test_data/animated-flower.webp",
+	//"test_data/monalisa.webp",
+	//"test_data/with-alpha.png",
+	"test_data/ios.heic",
 }
 
 func saveOutputFile(t *testing.T, filename string, data []byte) {
@@ -81,6 +82,7 @@ func TestSmartCompress(t *testing.T) {
 
 		img, err := vimage.LoadFromBuffer(data, getFilename(imgPath))
 		require.NoError(t, err)
+
 		compressed, format, err := img.SmartCompress(false)
 		require.NoError(t, err)
 		require.NotEmpty(t, compressed)

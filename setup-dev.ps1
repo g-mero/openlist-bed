@@ -22,7 +22,7 @@ if (Test-Path $DEST_DIR) {
 # Download and install
 $LIBVIPS_VERSION = "8.17.3"
 # Use official Windows build - web version (smaller, sufficient for development)
-$DOWNLOAD_URL = "https://github.com/libvips/build-win64-mxe/releases/download/v$LIBVIPS_VERSION/vips-dev-w64-web-$LIBVIPS_VERSION.zip"
+$DOWNLOAD_URL = "https://github.com/libvips/build-win64-mxe/releases/download/v$LIBVIPS_VERSION/vips-dev-w64-all-$LIBVIPS_VERSION.zip"
 $ARCHIVE_NAME = "vips-dev.zip"
 
 if (-not (Test-Path "third_party")) {
@@ -32,7 +32,7 @@ if (-not (Test-Path "third_party")) {
 try {
     # Check if already downloaded
     if (-not (Test-Path $ARCHIVE_NAME)) {
-        Write-Host "Downloading libvips $LIBVIPS_VERSION (web version)..." -ForegroundColor Cyan
+        Write-Host "Downloading libvips $LIBVIPS_VERSION ..." -ForegroundColor Cyan
         Invoke-WebRequest -Uri $DOWNLOAD_URL -OutFile $ARCHIVE_NAME -UseBasicParsing
         Write-Host "OK Download completed" -ForegroundColor Green
     } else {

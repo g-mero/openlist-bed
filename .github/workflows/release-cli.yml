@@ -1,0 +1,113 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - "cli@*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - goos: linux
+            goarch: amd64
+            output: olbed-cli-linux-amd64
+          - goos: linux
+            goarch: arm64
+            output: olbed-cli-linux-arm64
+
+          # Windows
+          - goos: windows
+            goarch: amd64
+            output: olbed-cli-windows-amd64.exe
+
+          # macOS
+          - goos: darwin
+            goarch: amd64
+            output: olbed-cli-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            output: olbed-cli-darwin-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.3"
+          cache: true
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -trimpath -ldflags="-s -w" -o dist/${{ matrix.output }} ./cmd/cli
+
+      - name: Compress binary (non-Windows)
+        if: matrix.goos != 'windows'
+        run: |
+          cd dist
+          tar -czf ${{ matrix.output }}.tar.gz ${{ matrix.output }}
+          rm ${{ matrix.output }}
+
+      - name: Compress binary (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          cd dist
+          zip ${{ matrix.output }}.zip ${{ matrix.output }}
+          rm ${{ matrix.output }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: dist/*
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" \) -exec mv {} release/ \;
+
+      - name: Check if release notes exist
+        id: check_notes
+        run: |
+          if [ -f "cmd/cli/RELEASE_NOTES.md" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          body_path: ${{ steps.check_notes.outputs.exists == 'true' && 'cmd/cli/RELEASE_NOTES.md' || '' }}
+          generate_release_notes: ${{ steps.check_notes.outputs.exists != 'true' }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
