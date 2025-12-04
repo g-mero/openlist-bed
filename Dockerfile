@@ -3,33 +3,38 @@ FROM golang:1.25.3-bookworm AS builder
 # RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
 # RUN sed -i 's/security.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
 
-# Add Debian sid repository for latest libvips
-RUN echo "deb http://ftp.hk.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list \
+# Install libvips-dev
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    echo "deb http://ftp.hk.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends -t sid libvips-dev \
-    && rm /etc/apt/sources.list.d/sid.list \
-    && apt-get update \
-    && mkdir /build
+    && apt-get install -y --no-install-recommends -t sid libvips-dev
 
-COPY go.mod /build
-RUN cd /build && go mod tidy
+WORKDIR /build
 
-COPY . /build
-RUN cd /build \
-    && CGO_ENABLED=1 go build -ldflags="-s -w" -o main cmd/server/main.go
+# Cache dependencies
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+# Build
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 go build -ldflags="-s -w" -o main cmd/server/main.go
 
 FROM debian:bookworm-slim
 
 # RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
 # RUN sed -i 's/security.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
 
-# Add Debian sid repository for latest libvips runtime
-RUN echo "deb http://ftp.hk.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list \
+# Install runtime dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    echo "deb http://ftp.hk.debian.org/debian sid main" > /etc/apt/sources.list.d/sid.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends -t sid libvips42t64 \
-    && apt-get install -y --no-install-recommends ca-certificates libjemalloc2 libtcmalloc-minimal4 \
-    && rm /etc/apt/sources.list.d/sid.list \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends ca-certificates
 
 COPY --from=builder /build/main /opt/main
 
