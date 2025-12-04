@@ -11,13 +11,13 @@ import (
 )
 
 var testImages = []string{
-	//"test_data/human.jpg",
-	//"test_data/sunset.jpg",
-	//"test_data/words.png",
-	//"test_data/animate.gif",
-	//"test_data/animated-flower.webp",
-	//"test_data/monalisa.webp",
-	//"test_data/with-alpha.png",
+	"test_data/human.jpg",
+	"test_data/sunset.jpg",
+	"test_data/words.png",
+	"test_data/animate.gif",
+	"test_data/animated-flower.webp",
+	"test_data/monalisa.webp",
+	"test_data/with-alpha.png",
 	"test_data/ios.heic",
 }
 

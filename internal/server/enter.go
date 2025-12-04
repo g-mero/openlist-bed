@@ -69,9 +69,15 @@ func Run() {
 		JSONDecoder: sonic.Unmarshal,
 		JSONEncoder: sonic.Marshal,
 	})
+	app.Get("/", func(c fiber.Ctx) error {
+		return c.SendString("openlist-bed-server is running")
+	})
 	app.Use(middleware.Cors())
 	app.Use(middleware.Cache())
 	registerRoutes(app)
+	app.Get("/*", func(c fiber.Ctx) error {
+		return c.Status(fiber.StatusNotFound).SendString("404 Not Found")
+	})
 
 	go func() {
 		utils.PrintBox("openlist-bed-server is running", "1. server started on port 6001")
