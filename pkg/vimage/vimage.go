@@ -18,13 +18,14 @@ const (
 	FormatPNG
 	FormatGIF
 	FormatWEBP
-	FormatHEIC
 )
 
 // Image wraps image data with metadata
 type Image struct {
 	originalData   []byte
 	originalFormat ImageFormat
+	width          int
+	height         int
 	FileName       string
 }
 
@@ -67,7 +68,7 @@ func LoadFromBuffer(buf []byte, filename string) (*Image, error) {
 	}
 
 	// Validate and detect format using vips
-	format, err := detectFormatWithVips(buf)
+	format, w, h, err := getInfoFromImgBuf(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -75,36 +76,38 @@ func LoadFromBuffer(buf []byte, filename string) (*Image, error) {
 	return &Image{
 		originalData:   buf,
 		originalFormat: format,
+		width:          w,
+		height:         h,
 		FileName:       filename,
 	}, nil
 }
 
-// detectFormatWithVips detects image format using vips
-func detectFormatWithVips(buf []byte) (ImageFormat, error) {
+// getInfoFromImgBuf detects image format using vips
+func getInfoFromImgBuf(buf []byte) (ImageFormat, int, int, error) {
 	// Use NewImageFromBuffer which is more reliable than NewImageFromSource
 	img, err := vips.NewImageFromBuffer(buf, nil)
 	if err != nil {
-		return 0, err
+		return 0, 0, 0, err
 	}
 	defer img.Close()
 
 	// Get format from vips
 	vipsFormat := img.Format()
+	width := img.Width()
+	height := img.Height()
 
 	// Map vips format to our ImageFormat
 	switch vipsFormat {
 	case vips.ImageTypeJpeg:
-		return FormatJPEG, nil
+		return FormatJPEG, width, height, nil
 	case vips.ImageTypePng:
-		return FormatPNG, nil
+		return FormatPNG, width, height, nil
 	case vips.ImageTypeGif:
-		return FormatGIF, nil
+		return FormatGIF, width, height, nil
 	case vips.ImageTypeWebp:
-		return FormatWEBP, nil
-	case vips.ImageTypeHeif:
-		return FormatHEIC, nil
+		return FormatWEBP, width, height, nil
 	default:
-		return 0, errors.New("unsupported image format")
+		return 0, 0, 0, errors.New("unsupported image format")
 	}
 }
 
@@ -117,11 +120,6 @@ func (img *Image) Transfer(opts *TransferOption) ([]byte, error) {
 	targetFormat := img.originalFormat
 	if opts.TargetFormat != 0 {
 		targetFormat = opts.TargetFormat
-	}
-
-	// HEIC should always be converted to JPEG if no target format specified
-	if targetFormat == FormatHEIC && opts.TargetFormat == 0 {
-		targetFormat = FormatJPEG
 	}
 
 	if opts.Quality < 1 || opts.Quality > 100 {
@@ -196,21 +194,12 @@ func (img *Image) SmartCompress(allowWebp bool) ([]byte, ImageFormat, error) {
 		TargetFormat: 0,
 	}
 
-	// HEIC always converts to JPEG or WebP
-	if img.originalFormat == FormatHEIC {
-		if allowWebp {
-			opt.TargetFormat = FormatWEBP
-		} else {
-			opt.TargetFormat = FormatJPEG
-		}
-	}
-
 	// compress gif is not effective, return original data
 	if img.originalFormat == FormatGIF && !allowWebp {
 		return img.originalData, FormatGIF, nil
 	}
 
-	if allowWebp && opt.TargetFormat == 0 {
+	if allowWebp {
 		opt.TargetFormat = FormatWEBP
 	}
 
@@ -268,8 +257,6 @@ func (img *Image) extensionForFormat(format ImageFormat) string {
 		return ".gif"
 	case FormatWEBP:
 		return ".webp"
-	case FormatHEIC:
-		return ".heic"
 	default:
 		return ""
 	}
@@ -296,36 +283,23 @@ func (img *Image) contentTypeForFormat(format ImageFormat) string {
 		return "image/gif"
 	case FormatWEBP:
 		return "image/webp"
-	case FormatHEIC:
-		return "image/heic"
 	default:
 		return "application/octet-stream"
 	}
 }
 
 // Dimensions returns image width and height
-func (img *Image) Dimensions() (width, height int, err error) {
-	reader := io.NopCloser(bytes.NewReader(img.originalData))
-	source := vips.NewSource(reader)
-	defer source.Close()
+func (img *Image) Dimensions() (width, height int) {
 
-	vipsImg, err := vips.NewImageFromSource(source, nil)
-	if err != nil {
-		return 0, 0, err
-	}
-	defer vipsImg.Close()
-
-	return vipsImg.Width(), vipsImg.Height(), nil
+	return img.width, img.height
 }
 
 // Width returns image width
-func (img *Image) Width() (int, error) {
-	w, _, err := img.Dimensions()
-	return w, err
+func (img *Image) Width() int {
+	return img.width
 }
 
 // Height returns image height
-func (img *Image) Height() (int, error) {
-	_, h, err := img.Dimensions()
-	return h, err
+func (img *Image) Height() int {
+	return img.height
 }

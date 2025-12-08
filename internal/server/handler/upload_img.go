@@ -24,7 +24,8 @@ func UploadImg(c fiber.Ctx) error {
 	}
 
 	if !keepName {
-		img, err = vimage.LoadFromBuffer(img.OriginalData(), fmt.Sprintf("%d", time.Now().Unix()))
+		img, err = vimage.LoadFromBuffer(img.OriginalData(), fmt.Sprintf("%d_%dx%d",
+			time.Now().Unix(), img.Width(), img.Height()))
 		if err != nil {
 			return err
 		}
