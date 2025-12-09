@@ -18,6 +18,7 @@ const (
 	FormatPNG
 	FormatGIF
 	FormatWEBP
+	FormatHEIC
 )
 
 // Image wraps image data with metadata
@@ -31,7 +32,7 @@ type Image struct {
 
 // TransferOption defines compression settings
 type TransferOption struct {
-	// Quality factor (1-100), default: 85
+	// Quality factor (1-100)
 	Quality int
 	// Target format, if 0, keeps original format
 	TargetFormat ImageFormat
@@ -68,7 +69,7 @@ func LoadFromBuffer(buf []byte, filename string) (*Image, error) {
 	}
 
 	// Validate and detect format using vips
-	format, w, h, err := getInfoFromImgBuf(buf)
+	format, w, h, err := getInfoFromImageBuf(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +83,8 @@ func LoadFromBuffer(buf []byte, filename string) (*Image, error) {
 	}, nil
 }
 
-// getInfoFromImgBuf detects image format using vips
-func getInfoFromImgBuf(buf []byte) (ImageFormat, int, int, error) {
+// getInfoFromImageBuf detects image format using vips
+func getInfoFromImageBuf(buf []byte) (ImageFormat, int, int, error) {
 	// Use NewImageFromBuffer which is more reliable than NewImageFromSource
 	img, err := vips.NewImageFromBuffer(buf, nil)
 	if err != nil {
@@ -106,6 +107,8 @@ func getInfoFromImgBuf(buf []byte) (ImageFormat, int, int, error) {
 		return FormatGIF, width, height, nil
 	case vips.ImageTypeWebp:
 		return FormatWEBP, width, height, nil
+	case vips.ImageTypeHeif:
+		return FormatHEIC, width, height, nil
 	default:
 		return 0, 0, 0, errors.New("unsupported image format")
 	}
@@ -120,6 +123,11 @@ func (img *Image) Transfer(opts *TransferOption) ([]byte, error) {
 	targetFormat := img.originalFormat
 	if opts.TargetFormat != 0 {
 		targetFormat = opts.TargetFormat
+	}
+
+	// HEIC should always be converted to JPEG if no target format specified
+	if targetFormat == FormatHEIC && opts.TargetFormat == 0 {
+		targetFormat = FormatJPEG
 	}
 
 	if opts.Quality < 1 || opts.Quality > 100 {
@@ -190,8 +198,17 @@ func (img *Image) Transfer(opts *TransferOption) ([]byte, error) {
 
 func (img *Image) SmartCompress(allowWebp bool) ([]byte, ImageFormat, error) {
 	opt := &TransferOption{
-		Quality:      80,
+		Quality:      85,
 		TargetFormat: 0,
+	}
+
+	// HEIC always converts to JPEG or WebP
+	if img.originalFormat == FormatHEIC {
+		if allowWebp {
+			opt.TargetFormat = FormatWEBP
+		} else {
+			opt.TargetFormat = FormatJPEG
+		}
 	}
 
 	// compress gif is not effective, return original data
@@ -199,7 +216,7 @@ func (img *Image) SmartCompress(allowWebp bool) ([]byte, ImageFormat, error) {
 		return img.originalData, FormatGIF, nil
 	}
 
-	if allowWebp {
+	if allowWebp && opt.TargetFormat == 0 {
 		opt.TargetFormat = FormatWEBP
 	}
 
@@ -257,6 +274,8 @@ func (img *Image) extensionForFormat(format ImageFormat) string {
 		return ".gif"
 	case FormatWEBP:
 		return ".webp"
+	case FormatHEIC:
+		return ".heic"
 	default:
 		return ""
 	}
@@ -283,6 +302,8 @@ func (img *Image) contentTypeForFormat(format ImageFormat) string {
 		return "image/gif"
 	case FormatWEBP:
 		return "image/webp"
+	case FormatHEIC:
+		return "image/heic"
 	default:
 		return "application/octet-stream"
 	}
@@ -290,7 +311,6 @@ func (img *Image) contentTypeForFormat(format ImageFormat) string {
 
 // Dimensions returns image width and height
 func (img *Image) Dimensions() (width, height int) {
-
 	return img.width, img.height
 }
 
