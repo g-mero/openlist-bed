@@ -1,16 +1,25 @@
-## 在docker环境下运行（推荐）
+# openlist-bed
 
-```shell
-docker run -d --name gotutu -p 3095:3095 \
---add-host="host.docker.internal:host-gateway" \
---restart on-failure:5 \
--v [你的本地路径]:/opt/data \
-gmeroo/gotutu:latest
-```
+An image bed service based on [openlist](https://github.com/OpenListTeam/OpenList) 
+and [libvips](https://github.com/libvips/libvips).
 
-注意这里的 `--add-host` 只需在linux系统下添加，mac或者windows系统无需添加该指令
 
-host.docker.internal 指向你的本地主机的地址，在容器内访问本地主机时请使用host.docker.internal来
-访问，因为localhost指向的是docker容器内部
+## Features
+- Supports multiple image formats including JPEG, PNG, WebP, 
+Heif (only read, will transfer to JPEG or Webp), GIF.
+- Automatic compression and transfer to WebP format for smaller file sizes.
+- Auto naming of images using UNIX and image width and height.
 
-请将 `[你的本地路径]` 替换为你主机上的路径，这是用来存放图片和配置项的
+## Installation
+
+check [docker-compost.yml](./docker-compose.yml).
+
+## Configuration
+
+| env key       | example value           | description                               |
+|---------------|-------------------------|-------------------------------------------|
+| API_KEY       | RANDOM_KEY              | the api-key to access api endpoint        |
+| HOST          | https://as.example.com  | to generate output image url              |
+| OPENLIST_HOST | https://pan.example.com | openlist service address                  |
+| OPENLIST_PATH | /path/to                | the path to store images at openlist      |
+| AUTO_WEBP     | false                   | to enable auto check browser webp support |
