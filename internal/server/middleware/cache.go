@@ -15,7 +15,8 @@ func Cache() fiber.Handler {
 				c.Get("Accept") +
 				c.Query("webp"))
 		},
-		MaxBytes:   1024 * 1024 * 10, // 10 MB
-		Expiration: time.Hour,
+		MaxBytes:            1024 * 1024 * 10, // 10 MB
+		Expiration:          time.Hour,
+		DisableCacheControl: true,
 	})
 }

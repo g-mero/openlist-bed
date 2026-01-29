@@ -1,13 +1,11 @@
 package storages
 
 import (
-	"openlist-bed/pkg/logger"
 	"openlist-bed/pkg/openlist_sdk"
 	"openlist-bed/pkg/vimage"
 
 	"github.com/imroc/req/v3"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type OpenlistStorage struct {
@@ -44,10 +42,6 @@ func NewOpenlistStorage() Storage {
 	token := viper.GetString("openlist.token")
 	host := viper.GetString("openlist.host")
 	path := viper.GetString("openlist.path")
-	logger.Debug("Openlist Storage Config:",
-		zap.String("token", token),
-		zap.String("host", host),
-		zap.String("path", path))
 
 	return &OpenlistStorage{
 		api:  openlist_sdk.NewOpenlistApi(token, host),

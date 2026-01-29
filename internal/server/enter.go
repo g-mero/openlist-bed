@@ -73,7 +73,6 @@ func Run() {
 		return c.SendString("openlist-bed-server is running")
 	})
 	app.Use(middleware.Cors())
-	app.Use(middleware.Cache())
 	registerRoutes(app)
 	app.Get("/*", func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).SendString("404 Not Found")
